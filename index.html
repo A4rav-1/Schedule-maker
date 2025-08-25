@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Schedule</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+    <style>
+        /* General styling */
+        body {
+            font-family: 'Cabin', sans-serif;
+            color: #333;
+        }
+
+        .title-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        #clearBtn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        #clearBtn:hover {
+            background-color: #c0392b;
+        }
+
+        /* Table styling */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        td,
+        th {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+            min-width: 100px;
+            height: 50px;
+        }
+
+        .header {
+            font-weight: bold;
+            background-color: #f2f2f2;
+        }
+
+        .time-cell {
+            font-weight: bold;
+            background-color: #f2f2f2;
+        }
+
+        .schedule-cell {
+            background-color: #fff;
+        }
+
+        .filled-cell {
+            position: relative;
+            color: white;
+            font-weight: bold;
+        }
+
+        .activity-text {
+            display: block;
+            font-size: 1.1em;
+        }
+
+        .time-duration {
+            display: block;
+            font-size: 0.8em;
+            font-weight: normal;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        .cancel-btn {
+            position: absolute;
+            top: 2px;
+            right: 5px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: white;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            text-shadow: 0 0 3px rgba(0,0,0,0.5);
+        }
+
+        .cancel-btn:hover {
+            opacity: 1;
+        }
+
+        #item-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            flex-wrap: wrap;
+        }
+
+        /* NEW: Wrapper for draggable and its external gear */
+        .draggable-wrapper {
+            display: flex;
+            align-items: center;
+            margin: 5px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .draggable {
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: grab;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+            white-space: nowrap;
+        }
+
+        .draggable:active {
+            cursor: grabbing;
+            transform: scale(1.05);
+        }
+
+        /* NEW: SVG Gear Icon Styling */
+        .gear-icon {
+            fill: white;
+            cursor: pointer;
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5)); /* Makes it visible on light backgrounds */
+        }
+
+        /* NEW: Gear icon for editing draggable items (appears externally) */
+        .edit-gear-draggable {
+            width: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+            height: 24px;
+        }
+
+        .draggable-wrapper:hover .edit-gear-draggable {
+            width: 24px; /* Animate width */
+            opacity: 1; /* Fade in */
+            margin-left: 8px; /* Add space */
+            transition-delay: 0.5s;
+
+        }
+
+        /* NEW: Gear icon for editing items within the table cells */
+        .edit-gear-cell {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .edit-gear-cell:hover {
+            opacity: 1;
+        }
+
+        /* Unique colors for each item */
+        #item1 { background-color: #00aaaa; }
+        #item2 { background-color: #27ae60; }
+        #item3 { background-color: #f39c12; }
+        #item4 { background-color: #c0392b; }
+        #item5 { background-color: #ffffff; }
+
+        /* Modal styling */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { position: relative; background-color: #fff; padding: 25px; border-radius: 8px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); width: 320px; }
+        .close-button { position: absolute; top: 10px; right: 15px; color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-button:hover, .close-button:focus { color: #333; }
+        .modal-inputs-container { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; align-items: center; }
+        .modal-input-group { display: flex; justify-content: space-between; align-items: center; width: 90%; }
+        #itemInput { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 5px; }
+        .modal-input-group input[type="color"] { -webkit-appearance: none; -moz-appearance: none; appearance: none; width: 38px; height: 38px; background-color: transparent; border: none; cursor: pointer; }
+        .modal-input-group input[type="color"]::-webkit-color-swatch { border-radius: 5px; border: 1px solid #ccc; }
+        .modal-input-group input[type="color"]::-moz-color-swatch { border-radius: 5px; border: 1px solid #ccc; }
+        .modal-content button { padding: 8px 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<svg style="display: none;">
+    <symbol id="gear-icon-svg" viewBox="0 0 24 24">
+        <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61.22l2 3.46c.12-.22.07-.49-.12.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+    </symbol>
+</svg>
+
+<div class="title-container">
+    <h1>My Weekly Schedule</h1>
+    <button id="clearBtn">Clear Schedule</button>
+</div>
+
+<p>Drag activities into your schedule. To edit an item, click the gear icon that appears on it.</p>
+
+<table id="scheduleTable">
+    <tbody><tr><td class="header">Time</td><td class="header">Monday</td><td class="header">Tuesday</td><td class="header">Wednesday</td><td class="header">Thursday</td><td class="header">Friday</td><td class="header">Saturday</td><td class="header">Sunday</td></tr><tr><td class="time-cell">4:00 PM</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td></tr><tr><td class="time-cell">5:00 PM</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td></tr><tr><td class="time-cell">6:00 PM</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td></tr><tr><td class="time-cell">7:00 PM</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td></tr><tr><td class="time-cell">8:00 PM</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td></tr><tr><td class="time-cell">9:00 PM</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td></tr><tr><td class="time-cell">10:00 PM</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td><td class="schedule-cell">&nbsp;</td></tr></tbody>
+</table>
+
+<hr>
+<h2>Activities</h2>
+<div id="item-container">
+    <div id="item1" class="draggable" draggable="true">Tuition</div>
+    <div id="item2" class="draggable" draggable="true">Relax</div>
+    <div id="item3" class="draggable" draggable="true">Sport</div>
+    <div id="item4" class="draggable" draggable="true">Homework</div>
+    <div id="item5" class="draggable" style="color: black; border: black 3px solid;" draggable="true">Custom</div>
+</div>
+
+<div id="itemModal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">×</span>
+        <h3 id="modalTitle">Create Custom Activity</h3>
+        <div class="modal-inputs-container">
+            <input type="text" id="itemInput" placeholder="E.g., Dinner">
+            <div class="modal-input-group">
+                <label for="bgColorPicker">Background Colour</label>
+                <input type="color" id="bgColorPicker" value="#8e44ad">
+            </div>
+            <div class="modal-input-group">
+                <label for="textColorPicker">Text Colour</label>
+                <input type="color" id="textColorPicker" value="#ffffff">
+            </div>
+        </div>
+        <button id="saveBtn">Save</button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const table = document.getElementById('scheduleTable');
+        const itemContainer = document.getElementById('item-container');
+        const clearBtn = document.getElementById('clearBtn');
+        const modal = document.getElementById('itemModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const saveBtn = document.getElementById('saveBtn');
+        const itemInput = document.getElementById('itemInput');
+        const bgColorPicker = document.getElementById('bgColorPicker');
+        const textColorPicker = document.getElementById('textColorPicker');
+        const closeBtn = document.querySelector('.close-button');
+
+        let dragTargetCell = null;
+        let elementBeingEdited = null;
+
+        // --- Helper Functions ---
+        const getEndTime = (startTimeStr) => {
+            const [time, modifier] = startTimeStr.split(' ');
+            let [hours] = time.split(':').map(Number);
+            if (modifier === 'PM' && hours < 12) hours += 12;
+            if (modifier === 'AM' && hours === 12) hours = 0;
+            hours = (hours + 1) % 24;
+            const newModifier = hours >= 12 ? 'PM' : 'AM';
+            let displayHours = hours % 12;
+            if (displayHours === 0) displayHours = 12;
+            return `${displayHours}:00 ${newModifier}`;
+        };
+
+        const rgbToHex = (rgb) => {
+            if (!rgb || !rgb.startsWith("rgb")) return rgb;
+            let sep = rgb.includes(",") ? "," : " ";
+            rgb = rgb.substr(4).split(")")[0].split(sep);
+            let r = (+rgb[0]).toString(16).padStart(2, '0');
+            let g = (+rgb[1]).toString(16).padStart(2, '0');
+            let b = (+rgb[2]).toString(16).padStart(2, '0');
+            return "#" + r + g + b;
+        };
+
+        const createGearIcon = (className) => {
+            const svgNS = "http://www.w3.org/2000/svg";
+            const icon = document.createElementNS(svgNS, "svg");
+            icon.setAttribute("class", `gear-icon ${className}`);
+            const use = document.createElementNS(svgNS, "use");
+            use.setAttributeNS("http://www.w3.org/1999/xlink", "href", "#gear-icon-svg");
+            icon.appendChild(use);
+            return icon;
+        };
+
+        // --- Modal Management ---
+        const openModal = (config) => {
+            modalTitle.textContent = config.title;
+            itemInput.value = config.text;
+            bgColorPicker.value = rgbToHex(config.bgColor);
+            textColorPicker.value = rgbToHex(config.textColor);
+            elementBeingEdited = config.element;
+            modal.style.display = 'flex';
+            itemInput.focus();
+        };
+
+        const closeModal = () => {
+            modal.style.display = 'none';
+            elementBeingEdited = null;
+        };
+
+        // --- Core Functionality ---
+        const placeItemInCell = (cell, text, bgColor, textColor) => {
+            const startTime = cell.parentElement.querySelector('.time-cell').textContent;
+            const endTime = getEndTime(startTime);
+            // Clear previous content before adding new
+            cell.innerHTML = '';
+
+            const content = document.createElement('div');
+            content.innerHTML = `<span class="activity-text">${text}</span><span class="time-duration">${startTime} - ${endTime}</span><span class="cancel-btn">×</span>`;
+
+            cell.appendChild(content);
+            cell.appendChild(createGearIcon('edit-gear-cell')); // Append gear icon
+
+            cell.style.backgroundColor = bgColor;
+            cell.style.color = textColor;
+            cell.classList.remove('schedule-cell');
+            cell.classList.add('filled-cell');
+        };
+
+        // --- Initial Setup ---
+        document.querySelectorAll('.draggable').forEach(draggable => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'draggable-wrapper';
+            draggable.parentNode.insertBefore(wrapper, draggable);
+            wrapper.appendChild(draggable);
+            wrapper.appendChild(createGearIcon('edit-gear-draggable'));
+        });
+
+
+        // --- Event Listeners ---
+
+        // Drag and Drop
+        itemContainer.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('draggable')) {
+                const draggable = e.target;
+                const style = window.getComputedStyle(draggable);
+                const itemData = {
+                    text: draggable.firstChild.textContent.trim(),
+                    bgColor: style.backgroundColor,
+                    textColor: style.color
+                };
+                e.dataTransfer.setData('application/json', JSON.stringify(itemData));
+            }
+        });
+
+        document.querySelectorAll('.schedule-cell').forEach(cell => {
+            cell.addEventListener('dragover', (e) => e.preventDefault());
+            cell.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (cell.classList.contains('filled-cell')) return;
+                const data = JSON.parse(e.dataTransfer.getData('application/json'));
+
+                if (data.text === 'Custom') {
+                    dragTargetCell = cell;
+                    openModal({
+                        title: 'Create Custom Activity', text: '', bgColor: '#ffffff', textColor: '#000000', element: 'new-custom'
+                    });
+                } else {
+                    placeItemInCell(cell, data.text, data.bgColor, data.textColor);
+                }
+            });
+        });
+
+        // Modal Save Button
+        saveBtn.addEventListener('click', () => {
+            const newText = itemInput.value.trim();
+            const newBgColor = bgColorPicker.value;
+            const newTextColor = textColorPicker.value;
+
+            if (!newText && elementBeingEdited !== 'new-custom') return alert("Activity name cannot be empty.");
+
+            if (elementBeingEdited === 'new-custom') { // Dropped a "Custom" item
+                if (dragTargetCell && newText) placeItemInCell(dragTargetCell, newText, newBgColor, newTextColor);
+            } else if (elementBeingEdited.classList.contains('filled-cell')) { // Editing a cell
+                placeItemInCell(elementBeingEdited, newText, newBgColor, newTextColor);
+            } else if (elementBeingEdited.classList.contains('draggable')) { // Editing a draggable item
+                elementBeingEdited.firstChild.textContent = newText;
+                elementBeingEdited.style.backgroundColor = newBgColor;
+                elementBeingEdited.style.color = newTextColor;
+            }
+            closeModal();
+        });
+
+        // Edit Draggable Item (via hover gear)
+        itemContainer.addEventListener('click', (e) => {
+            const gear = e.target.closest('.edit-gear-draggable');
+            if (gear) {
+                const draggable = gear.previousElementSibling;
+                const style = window.getComputedStyle(draggable);
+                openModal({
+                    title: 'Edit Activity Template', text: draggable.firstChild.textContent.trim(), bgColor: style.backgroundColor, textColor: style.color, element: draggable
+                });
+            }
+        });
+
+        // Handle clicks within the table (Cancel, Edit)
+        table.addEventListener('click', (e) => {
+            if (e.target.closest('.cancel-btn')) {
+                const cell = e.target.closest('.filled-cell');
+                cell.innerHTML = '&nbsp;';
+                cell.style.backgroundColor = '';
+                cell.style.color = '';
+                cell.classList.remove('filled-cell');
+                cell.classList.add('schedule-cell');
+            } else if (e.target.closest('.edit-gear-cell')) {
+                const cell = e.target.closest('.filled-cell');
+                openModal({
+                    title: 'Edit Scheduled Item', text: cell.querySelector('.activity-text').textContent, bgColor: cell.style.backgroundColor, textColor: cell.style.color, element: cell
+                });
+            }
+        });
+
+        // General page-level listeners
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear the entire schedule?')) {
+                document.querySelectorAll('.filled-cell').forEach(cell => {
+                    cell.innerHTML = '&nbsp;';
+                    cell.style.backgroundColor = '';
+                    cell.style.color = '';
+                    cell.classList.remove('filled-cell');
+                    cell.classList.add('schedule-cell');
+                });
+            }
+        });
+
+        closeBtn.addEventListener('click', closeModal);
+        window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    });
+</script>
+</body>
+</html>
